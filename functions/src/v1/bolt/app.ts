@@ -6,6 +6,8 @@ import { useSearchAction } from "./actions/useSearchAction";
 import { useShowAddItemModalAction } from "./actions/useShowAddItemModalAction";
 import { useAddItemView } from "./views/useAddItemView";
 import { error, info, warn } from "firebase-functions/lib/logger";
+import { useAskAction } from "./actions/useAskAction";
+import { useAppDirectMessageEvent } from "./events/useAppDirectMessageEvent";
 
 const config = functions.config();
 
@@ -44,11 +46,16 @@ app.error(async (e) => {
 
 // registered mention event
 useMentionEvent(app);
+useAppDirectMessageEvent(app);
 // registered search action
 useSearchAction(app);
 // show modal
 useShowAddItemModalAction(app);
 useAddItemView(app);
+// ask action
+if (config.slack.ask_channel_id) {
+  useAskAction(app);
+}
 
 export const slack = functions.region(REGION).https.onRequest((req, res) => {
   // イベントのタイムアウトでの再送を防止

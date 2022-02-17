@@ -3,6 +3,8 @@ import { search } from "../../../lib/search";
 import { SpreadsheetClient } from "../../../lib/spreadsheetClient";
 import * as functions from "firebase-functions";
 import { searchResultBlock } from "../blocks/searchResultBlock";
+import { errorBlock } from "../blocks/errorBlock";
+import { fetchChannelName } from "../../../lib/utils";
 
 const config = functions.config();
 
@@ -10,6 +12,7 @@ export const useSearchAction = (app: App) => {
   app.action<BlockButtonAction>(
     /search_\d/,
     async ({ ack, client, body, action, logger }) => {
+      const channelId = body.channel!.id;
       try {
         await ack();
         // スプレッドシートからデータを検索
@@ -17,19 +20,21 @@ export const useSearchAction = (app: App) => {
         const searchItems = await spreadsheetClient.getValues(config.sheet.id);
         const searchResult = search(searchItems, action.value);
 
-        // スレッドで返したいためスレッドの情報を取得する
-        const conversations = await client.conversations.replies({
-          channel: body.channel!.id,
-          ts: body.message!.ts,
-        });
-
+        const askChannelName = await fetchChannelName(client, channelId);
         await client.chat.postMessage({
-          channel: body.channel!.id,
-          thread_ts: conversations.messages![0].thread_ts,
-          blocks: searchResultBlock(searchResult),
+          channel: channelId,
+          blocks: searchResultBlock({
+            searchResult,
+            searchWord: action.value,
+            askChannelName,
+          }),
         });
       } catch (e) {
         logger.error(e);
+        await client.chat.postMessage({
+          channel: channelId,
+          blocks: errorBlock(),
+        });
       }
     }
   );

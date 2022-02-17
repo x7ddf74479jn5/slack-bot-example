@@ -1,6 +1,8 @@
 import { Block, KnownBlock } from "@slack/bolt";
 
-export const addItemModalBlock = (): (Block | KnownBlock)[] => {
+export const addItemModalBlock = (
+  searchWord: string
+): (Block | KnownBlock)[] => {
   return [
     {
       type: "section",
